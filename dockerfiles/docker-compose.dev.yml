@@ -19,9 +19,11 @@ services:
       - ../${PROJECT_NAME}:/home/${PROJECT_NAME}/web
       - log_data:/home/${PROJECT_NAME}/web/logs
       - db_data:/home/${PROJECT_NAME}/web/db_data
+      - static_data:/home/${PROJECT_NAME}/web/staticfiles
     ports:
       - ${EXPOSED_PORT}:${CONTAINER_PORT}
 
 volumes:
   log_data:
   db_data:
+  static_data:
