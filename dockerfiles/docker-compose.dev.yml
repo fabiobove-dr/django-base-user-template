@@ -1,0 +1,27 @@
+
+version: '3.8'
+
+services:
+  web:
+    env_file:
+      -  ../environment/.env.dev
+    container_name: ${PROJECT_NAME}_web
+    image: ${PROJECT_NAME}_web
+    build:
+      context: ../${PROJECT_NAME}
+      args:
+        - PROJECT_NAME=${PROJECT_NAME}
+        - WORK_DIR=${PROJECT_NAME}
+        - APP_USER=${APP_USER}
+      dockerfile: ./dockerfiles/Dockerfile.dev
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:${CONTAINER_PORT}
+    volumes:
+      - ../${PROJECT_NAME}:/home/${PROJECT_NAME}/web
+      - log_data:/home/${PROJECT_NAME}/web/logs
+      - db_data:/home/${PROJECT_NAME}/web/db_data
+    ports:
+      - ${EXPOSED_PORT}:${CONTAINER_PORT}
+
+volumes:
+  log_data:
+  db_data:

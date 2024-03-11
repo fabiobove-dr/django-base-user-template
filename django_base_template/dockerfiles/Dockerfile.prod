@@ -1,0 +1,96 @@
+#######################################################################################
+# BUILDER                                                                             #
+#######################################################################################
+
+# pull official base image
+FROM python:3.9.6-alpine as builder
+
+# Config Directories and user of the app
+# Values are contained in the env file
+ARG WORK_DIR
+ENV WORK_DIR=/usr/src/$WORK_DIR
+
+RUN mkdir -p $WORK_DIR
+WORKDIR $WORK_DIR
+
+RUN mkdir -p /wheels
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# lint
+RUN apk update 
+RUN pip install --upgrade pip
+COPY . .
+
+# install dependencies
+COPY ./requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir $WORK_DIR/wheels -r requirements.txt
+
+#######################################################################################
+# FINAL                                                                               #
+#######################################################################################
+
+# pull official base image
+FROM python:3.9.6-alpine
+
+# define variables
+ARG PROJECT_NAME
+ARG PROXY_NAM
+ARG APP_USER
+ARG WORK_DIR
+ENV $PROJECT_NAME=$PROJECT_NAME
+ENV PROXY_NAME=$PROXY_NAME
+ENV APP_USER=$APP_USER
+ENV WORK_DIR=/usr/src/$WORK_DIR
+ENV APP_DIR=/home/$PROJECT_NAME/web
+
+# create directory for the app user
+RUN mkdir -p /home/$APP_USER
+
+# create the app user
+RUN addgroup -S $APP_USER && adduser -S $APP_USER -G $APP_USER
+
+# create the directory for staticfiles
+RUN mkdir -p $APP_DIR/staticfiles/
+RUN mkdir -p $APP_DIR/wheels/
+
+# Set the directory as working dir
+WORKDIR $APP_DIR
+
+# Docker Compose normally mounts named volumes as root. 
+# And since we're using a non-root user, we'll get a permission denied error when the collectstatic command is run if the directory does not already exist
+RUN chgrp -R $APP_USER $APP_DIR/staticfiles/
+RUN chmod -R g+w $APP_DIR/staticfiles/
+RUN chmod +x $APP_DIR/staticfiles
+
+# install dependencies
+RUN apk update && apk add libpq
+COPY --from=builder $WORK_DIR/wheels /wheels
+COPY --from=builder $WORK_DIR/requirements.txt .
+RUN pip install --no-cache /wheels/*
+RUN pip install gunicorn
+
+# TODO
+# copy entrypoint.prod.sh
+RUN chown -R $APP_USER:$APP_USER $APP_DIR
+COPY ./entrypoints/entrypoint.prod.sh $APP_DIR/
+RUN sed -i 's/\r$//g' $APP_DIR/entrypoint.prod.sh
+RUN chmod +x $APP_DIR/entrypoint.prod.sh
+
+# copy project
+COPY . $APP_DIR
+
+# chown all the files to the app user
+# change to the app user
+RUN chown -R $APP_USER:$APP_USER $APP_DIR
+USER $APP_USER
+
+# Create the logs directory and the api.log file
+RUN mkdir -p $APP_DIR/logs
+
+# run entrypoint.prod.sh
+# Note the "sh" prefix will ensure that the entrypoint.prod.sh file is executed using the shell, 
+# which will ensure that the file permissions are respected.
+ENTRYPOINT ["sh", "entrypoints/entrypoint.prod.sh"]

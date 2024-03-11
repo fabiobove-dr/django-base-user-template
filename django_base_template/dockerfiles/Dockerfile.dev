@@ -1,0 +1,44 @@
+######################################################################################
+# DEVELOPMENT                                                                        #
+# Dockerfile used to build a Python environment for a Django project                 #
+######################################################################################
+
+# Pull the official base image for Python 3.9 on Alpine Linux
+FROM python:3.10-alpine
+
+# Set the work directory name
+ARG WORK_DIR
+ENV WORK_DIR=$WORK_DIR
+ENV WORK_DIR=/home/$WORK_DIR/web
+
+# Set environment variables to configure Python behavior
+# PYTHONDONTWRITEBYTECODE: Prevents Python from writing compiled bytecode to disk
+# PYTHONUNBUFFERED: Prevents Python from buffering output streams, such as stdout and stderr
+ENV PYTHONDONTWRITEBYTECODE 1 
+ENV PYTHONUNBUFFERED 1 
+
+# Set the working directory for the project
+RUN mkdir -p $WORK_DIR
+WORKDIR $WORK_DIR
+
+# Install dependencies defined in requirements.txt
+COPY ./requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install gunicorn
+RUN pip install -r requirements.txt
+
+# Install the Flake8 tool for linting Python code
+RUN pip install --upgrade pip
+# RUN pip install flake8==3.9.2
+
+# If Flake8 is active, test the code and show any warnings or errors
+# RUN flake8 --ignore=E501,F401 .
+
+# Copy the entire project into the working directory
+COPY . $WORK_DIR
+
+# Create the logs directory and the api.log file
+RUN mkdir -p $WORK_DIR/logs
+
+# Run entrypoint.dev.sh, which is a shell script for starting the development environment
+ENTRYPOINT ["sh", "./entrypoints/entrypoint.dev.sh"]

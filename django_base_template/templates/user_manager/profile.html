@@ -1,0 +1,16 @@
+{% extends "main/header.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="content-section col-lg-12 col-md-12 col-sm-12 tutorial-style" style="min-height:65vh;">
+    <legend class="border-bottom mb-4">Profile Information:</legend>
+        <div class="media">
+            <div class="media-body">
+                <h2 class="account-heading">{{ user.username }}
+                    <small class="text-muted">({{ user.status }})</small>
+                </h2>
+                <p class="text-secondary">{{ user.first_name }} {{ user.last_name }}</p>
+                <p class="text-secondary">{{ user.email }}</p>
+                <p class="text-secondary">{{ user.description }}</p>
+            </div>
+</div>
+{% endblock content %}

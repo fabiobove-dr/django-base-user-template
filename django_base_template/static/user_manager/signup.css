@@ -1,0 +1,7 @@
+#signup-panel{
+    max-width: 500px;
+    margin: 0px auto;
+}
+#signup-panel> form{
+    margin: 0px auto;
+}
